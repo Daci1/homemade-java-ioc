@@ -1,4 +1,4 @@
-package com.homemade.ioc.decorators;
+package com.homemade.ioc.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -1,10 +1,10 @@
 package com.homemade.ioc.examples;
 
-import com.homemade.ioc.decorators.Inject;
-import com.homemade.ioc.decorators.Injectable;
+import com.homemade.ioc.annotations.Inject;
+import com.homemade.ioc.annotations.Injectable;
 
-@Injectable
-public class Example2 {
+@Injectable(value = "Example2")
+public class Example2 implements InterfaceExample{
     @Inject
     private Example3 example3;
 

@@ -1,4 +1,4 @@
-package com.homemade.ioc.decorators;
+package com.homemade.ioc.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,6 +7,6 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface Qualifier {
+public @interface Injectable {
     String value() default "default";
 }

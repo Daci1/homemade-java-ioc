@@ -1,12 +1,14 @@
 package com.homemade.ioc.examples;
 
-import com.homemade.ioc.decorators.Inject;
-import com.homemade.ioc.decorators.Injectable;
+import com.homemade.ioc.annotations.Inject;
+import com.homemade.ioc.annotations.Injectable;
+import com.homemade.ioc.annotations.Qualifier;
 
-@Injectable
-public class Example1 {
+@Injectable("Example1")
+public class Example1 implements InterfaceExample{
     @Inject
-    private Example2 example2;
+    @Qualifier("Example2")
+    private InterfaceExample example2;
 
     public void printSomething() {
         System.out.println("Hello from Example1");

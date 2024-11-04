@@ -8,7 +8,7 @@ public class Main {
         HomemadeIocContainer container = new HomemadeIocContainer();
         container.scanPackage("com.homemade.ioc");
 
-        Example1 example1 = container.getComponent(Example1.class).get();
+        Example1 example1 = container.getComponent(Example1.class, "Example1").get();
         example1.printSomething();
     }
 }

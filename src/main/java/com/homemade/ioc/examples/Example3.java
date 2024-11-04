@@ -1,7 +1,6 @@
 package com.homemade.ioc.examples;
 
-import com.homemade.ioc.decorators.Inject;
-import com.homemade.ioc.decorators.Injectable;
+import com.homemade.ioc.annotations.Injectable;
 
 @Injectable
 public class Example3 {
