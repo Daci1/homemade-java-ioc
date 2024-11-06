@@ -2,19 +2,22 @@ package com.homemade.ioc.containers;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Stream;
 
 import com.homemade.ioc.annotations.Inject;
 import com.homemade.ioc.annotations.Injectable;
 import com.homemade.ioc.annotations.Qualifier;
+import com.homemade.ioc.annotations.Value;
 import com.homemade.ioc.models.TypeWithQualifier;
+import com.homemade.ioc.strategy.value.ValueTypeStrategies;
+import com.homemade.ioc.strategy.value.ValueTypeStrategy;
 import com.homemade.ioc.utils.ReflectionUtils;
 import org.reflections.Reflections;
 
 public class HomemadeIocContainer {
     // So far only singletons
     private final Map<TypeWithQualifier, Object> injectables = new HashMap<>();
-
-    //TODO: add logic for @Value()
+    private final Map<String, String> values = new HashMap<>();
 
     public <T> Optional<T> getComponent(Class<T> clazz) {
         var instance = injectables.get(new TypeWithQualifier(clazz));
@@ -47,12 +50,17 @@ public class HomemadeIocContainer {
             injectables.put(new TypeWithQualifier(clazz, clazz.getAnnotation(Injectable.class).value()), instance);
             registerForAllClassTypes(clazz, instance);
 
-            List<Field> annotatedFields = Arrays.stream(clazz.getDeclaredFields())
-                    .filter(c -> c.isAnnotationPresent(Inject.class)) //TODO: filter primitive values in the future
+            List<Field> annotatedInjectableFields = Arrays.stream(clazz.getDeclaredFields())
+                    .filter(c -> c.isAnnotationPresent(Inject.class))
                     .toList();
 
-            registerClassFields(annotatedFields);
-            attachClassFields(instance, annotatedFields);
+            List<Field> annotatedValueFields = Arrays.stream(clazz.getDeclaredFields())
+                    .filter(c -> c.isAnnotationPresent(Value.class)) //TODO: filter primitive values in the future
+                    .toList();
+
+            registerInjectableClassFields(annotatedInjectableFields);
+            registerValueClassFields(instance, annotatedValueFields);
+            attachClassFields(instance, annotatedInjectableFields);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -60,8 +68,9 @@ public class HomemadeIocContainer {
 
     }
 
-    private void registerClassFields(List<Field> fields) {
-        assert fields.stream().allMatch(field -> field.isAnnotationPresent(Inject.class)); // TODO: later also @Value
+
+    private void registerInjectableClassFields(List<Field> fields) {
+        assert fields.stream().allMatch(field -> field.isAnnotationPresent(Inject.class));
 
         fields.stream()
                 .map(Field::getType)
@@ -69,7 +78,7 @@ public class HomemadeIocContainer {
     }
 
     private void attachClassFields(Object instance, List<Field> fields) {
-        assert fields.stream().allMatch(field -> field.isAnnotationPresent(Inject.class)); // TODO: later also @Value
+        assert fields.stream().allMatch(field -> field.isAnnotationPresent(Inject.class));
 
         fields.forEach(field -> {
             Class<?> fieldClass = field.getType();
@@ -112,5 +121,47 @@ public class HomemadeIocContainer {
                 injectables.put(new TypeWithQualifier(type, qualifier), instance);
             }
         });
+    }
+
+    private void registerValueClassFields(Object instance, List<Field> annotatedValueFields) {
+        annotatedValueFields.forEach(field -> registerValueClassField(instance, field));
+    }
+
+    private void registerValueClassField(Object instance, Field annotatedValueField) {
+        assert annotatedValueField.isAnnotationPresent(Value.class);
+
+        ValueTypeStrategy<?> valueTypeStrategy = ValueTypeStrategies.getValueTypeStrategy(annotatedValueField.getType());
+
+        String value = getValueForAnnotatedField(annotatedValueField);
+        annotatedValueField.setAccessible(true);
+        try {
+            annotatedValueField.set(instance, valueTypeStrategy.convertToValueType(value));
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String getValueForAnnotatedField(Field annotatedValueField) {
+        assert annotatedValueField.isAnnotationPresent(Value.class);
+        String annotationValue = annotatedValueField.getAnnotation(Value.class).value();
+
+        boolean hasDefaultValue = Stream.of(annotationValue)
+                .filter(str -> str.contains(":"))
+                .map(str -> str.split(":"))
+                .filter(splittedString -> splittedString.length > 1)
+                .map(splittedString -> splittedString[1])
+                .findFirst()
+                .isPresent();
+
+        if(hasDefaultValue) {
+            String envVarKey = annotationValue.split(":")[0];
+            String defaultValue = annotationValue.split(":")[1];
+            Optional<String> envVar = Optional.ofNullable(System.getenv(envVarKey));
+            return envVar.orElse(defaultValue);
+        } else {
+            Optional<String> envVar = Optional.ofNullable(System.getenv(annotationValue));
+            return envVar.orElse("");
+        }
+
     }
 }

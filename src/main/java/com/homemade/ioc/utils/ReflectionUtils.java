@@ -1,5 +1,10 @@
 package com.homemade.ioc.utils;
 
+import com.homemade.ioc.annotations.Value;
+import com.homemade.ioc.models.ValueType;
+
+import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -10,6 +15,13 @@ public class ReflectionUtils {
 
         addInterfaceAndSuperInterfaces(clazz, interfaces);
         return interfaces;
+    }
+
+    public static boolean isClassFieldAcceptedValueType(Field field) {
+        assert field.isAnnotationPresent(Value.class);
+
+        Class<?> fieldType = field.getType();
+        return Arrays.stream(ValueType.values()).anyMatch(type -> type.getAssociatedClass().equals(fieldType));
     }
 
     private static void addInterfaceAndSuperInterfaces(Class<?> clazz, Set<Class<?>> allTypes) {
